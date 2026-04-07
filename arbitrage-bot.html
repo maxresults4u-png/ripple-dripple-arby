@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Arbitrage Bot (Learning)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body { background:#030712; color:#e2e8f0; font-family:Arial; padding:20px; }
+h1 { color:#00ff88; text-align:center; }
+.container { max-width:600px; margin:auto; }
+.card { background:#0d1117; border:1px solid #1e2d3d; padding:15px; border-radius:10px; margin-top:15px; }
+.green { color:#00ff88; }
+.red { color:#ef4444; }
+button { width:100%; padding:12px; margin-top:10px; border:none; border-radius:6px; background:#00ff88; color:black; font-weight:bold; cursor:pointer; }
+</style>
+</head>
+
+<body>
+
+<h1>⚡ Arbitrage Bot (Learning Mode)</h1>
+
+<div class="container">
+
+<div class="card">
+  <div>Balance: $<span id="balance">1000</span></div>
+  <div>Profit: $<span id="profit">0</span></div>
+  <div>Trades: <span id="trades">0</span></div>
+</div>
+
+<div class="card">
+  <div>Threshold: <span id="threshold">0.50</span>%</div>
+  <div>Avg Profit: <span id="avgProfit">0</span></div>
+</div>
+
+<div class="card">
+  <div>Price A: <span id="priceA">--</span></div>
+  <div>Price B: <span id="priceB">--</span></div>
+  <div>Spread: <span id="spread">--</span></div>
+</div>
+
+<div class="card">
+  <div>Status: <span id="status">Idle</span></div>
+</div>
+
+<button onclick="startBot()">Start Bot</button>
+
+</div>
+
+<script>
+
+let balance = 1000;
+let profit = 0;
+let tradeHistory = [];
+let running = false;
+
+let THRESHOLD = 0.5;
+const TRADE_SIZE = 100;
+
+function updateUI(priceA, priceB, spread) {
+  document.getElementById("priceA").innerText = priceA.toFixed(4);
+  document.getElementById("priceB").innerText = priceB.toFixed(4);
+  document.getElementById("spread").innerText = spread.toFixed(2) + "%";
+  document.getElementById("balance").innerText = balance.toFixed(2);
+  document.getElementById("profit").innerText = profit.toFixed(2);
+  document.getElementById("trades").innerText = tradeHistory.length;
+  document.getElementById("threshold").innerText = THRESHOLD.toFixed(2);
+}
+
+function updateLearning() {
+  if (tradeHistory.length < 5) return;
+
+  let lastTrades = tradeHistory.slice(-5);
+
+  let avg = lastTrades.reduce((sum, t) => sum + t.profit, 0) / lastTrades.length;
+
+  document.getElementById("avgProfit").innerText = avg.toFixed(4);
+
+  // 🔥 ADAPTIVE LOGIC
+  if (avg < 0) {
+    THRESHOLD += 0.1; // be more strict
+  } else {
+    THRESHOLD -= 0.05; // be more aggressive
+  }
+
+  // keep threshold sane
+  if (THRESHOLD < 0.3) THRESHOLD = 0.3;
+  if (THRESHOLD > 2.0) THRESHOLD = 2.0;
+}
+
+async function scan() {
+  try {
+    const res1 = await fetch("https://api.binance.com/api/v3/ticker/price?symbol=XRPUSDT");
+    const data1 = await res1.json();
+
+    const res2 = await fetch("https://api.kraken.com/0/public/Ticker?pair=XRPUSD");
+    const data2 = await res2.json();
+
+    const priceA = parseFloat(data1.price);
+    const priceB = parseFloat(data2.result.XXRPZUSD.c[0]);
+
+    const spread = ((priceB - priceA) / priceA) * 100;
+
+    updateUI(priceA, priceB, spread);
+
+    if (spread > THRESHOLD) {
+      executeTrade(priceA, priceB, spread);
+    }
+
+  } catch (err) {
+    document.getElementById("status").innerText = "Error";
+  }
+}
+
+function executeTrade(priceA, priceB, spread) {
+  document.getElementById("status").innerText = "Executing trade...";
+
+  // simulate slippage / fees
+  let realSpread = spread - 0.3;
+
+  let profitAmount = TRADE_SIZE * (realSpread / 100);
+
+  balance += profitAmount;
+  profit += profitAmount;
+
+  tradeHistory.push({
+    spread: spread,
+    profit: profitAmount
+  });
+
+  updateLearning();
+
+  document.getElementById("status").innerText = "Trade executed (paper)";
+}
+
+function startBot() {
+  if (running) return;
+
+  running = true;
+  document.getElementById("status").innerText = "Bot running...";
+
+  setInterval(scan, 3000);
+}
+
+</script>
+
+</body>
+</html>
