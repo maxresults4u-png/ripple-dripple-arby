@@ -1,48 +1,102 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Arbitrage Bot (Learning)</title>
+<title>Campione Arbitrage Engine</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-body { background:#030712; color:#e2e8f0; font-family:Arial; padding:20px; }
-h1 { color:#00ff88; text-align:center; }
-.container { max-width:600px; margin:auto; }
-.card { background:#0d1117; border:1px solid #1e2d3d; padding:15px; border-radius:10px; margin-top:15px; }
+body {
+  background: radial-gradient(circle at top, #020617, #000);
+  color: #e2e8f0;
+  font-family: 'Segoe UI', sans-serif;
+  padding: 20px;
+}
+
+h1 {
+  text-align: center;
+  color: #00f0ff;
+  text-shadow: 0 0 10px #00f0ff;
+}
+
+.container {
+  max-width: 900px;
+  margin: auto;
+}
+
+.card {
+  background: rgba(13,17,23,0.9);
+  border: 1px solid #00f0ff33;
+  padding: 20px;
+  border-radius: 12px;
+  margin-top: 15px;
+  box-shadow: 0 0 15px rgba(0,255,255,0.1);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.stat {
+  font-size: 18px;
+  margin: 5px 0;
+}
+
 .green { color:#00ff88; }
 .red { color:#ef4444; }
-button { width:100%; padding:12px; margin-top:10px; border:none; border-radius:6px; background:#00ff88; color:black; font-weight:bold; cursor:pointer; }
+
+button {
+  width: 100%;
+  padding: 14px;
+  margin-top: 15px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(90deg,#00f0ff,#00ff88);
+  color: black;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
 </style>
 </head>
 
 <body>
 
-<h1>⚡ Arbitrage Bot (Learning Mode)</h1>
+<h1>⚡ Campione Arbitrage Engine</h1>
 
 <div class="container">
 
+<div class="grid">
+
 <div class="card">
-  <div>Balance: $<span id="balance">1000</span></div>
-  <div>Profit: $<span id="profit">0</span></div>
-  <div>Trades: <span id="trades">0</span></div>
+  <div class="stat">Balance: $<span id="balance">1000</span></div>
+  <div class="stat">Profit: $<span id="profit">0</span></div>
+  <div class="stat">Trades: <span id="trades">0</span></div>
 </div>
 
 <div class="card">
-  <div>Threshold: <span id="threshold">0.50</span>%</div>
-  <div>Avg Profit: <span id="avgProfit">0</span></div>
+  <div class="stat">Threshold: <span id="threshold">0.50</span>%</div>
+  <div class="stat">Avg Profit: <span id="avgProfit">0</span></div>
+</div>
+
 </div>
 
 <div class="card">
-  <div>Price A: <span id="priceA">--</span></div>
-  <div>Price B: <span id="priceB">--</span></div>
-  <div>Spread: <span id="spread">--</span></div>
+  <div class="stat">Price A: <span id="priceA">--</span></div>
+  <div class="stat">Price B: <span id="priceB">--</span></div>
+  <div class="stat">Spread: <span id="spread">--</span></div>
 </div>
 
 <div class="card">
   <div>Status: <span id="status">Idle</span></div>
 </div>
 
-<button onclick="startBot()">Start Bot</button>
+<button onclick="startBot()">🚀 Start Engine</button>
 
 </div>
 
@@ -69,20 +123,17 @@ function updateUI(priceA, priceB, spread) {
 function updateLearning() {
   if (tradeHistory.length < 5) return;
 
-  let lastTrades = tradeHistory.slice(-5);
-
-  let avg = lastTrades.reduce((sum, t) => sum + t.profit, 0) / lastTrades.length;
+  let last = tradeHistory.slice(-5);
+  let avg = last.reduce((sum, t) => sum + t.profit, 0) / last.length;
 
   document.getElementById("avgProfit").innerText = avg.toFixed(4);
 
-  // 🔥 ADAPTIVE LOGIC
   if (avg < 0) {
-    THRESHOLD += 0.1; // be more strict
+    THRESHOLD += 0.1;
   } else {
-    THRESHOLD -= 0.05; // be more aggressive
+    THRESHOLD -= 0.05;
   }
 
-  // keep threshold sane
   if (THRESHOLD < 0.3) THRESHOLD = 0.3;
   if (THRESHOLD > 2.0) THRESHOLD = 2.0;
 }
@@ -103,7 +154,7 @@ async function scan() {
     updateUI(priceA, priceB, spread);
 
     if (spread > THRESHOLD) {
-      executeTrade(priceA, priceB, spread);
+      executeTrade(spread);
     }
 
   } catch (err) {
@@ -111,32 +162,27 @@ async function scan() {
   }
 }
 
-function executeTrade(priceA, priceB, spread) {
+function executeTrade(spread) {
   document.getElementById("status").innerText = "Executing trade...";
 
-  // simulate slippage / fees
   let realSpread = spread - 0.3;
-
   let profitAmount = TRADE_SIZE * (realSpread / 100);
 
   balance += profitAmount;
   profit += profitAmount;
 
-  tradeHistory.push({
-    spread: spread,
-    profit: profitAmount
-  });
+  tradeHistory.push({ spread, profit: profitAmount });
 
   updateLearning();
 
-  document.getElementById("status").innerText = "Trade executed (paper)";
+  document.getElementById("status").innerText = "Trade executed";
 }
 
 function startBot() {
   if (running) return;
-
   running = true;
-  document.getElementById("status").innerText = "Bot running...";
+
+  document.getElementById("status").innerText = "Engine running...";
 
   setInterval(scan, 3000);
 }
